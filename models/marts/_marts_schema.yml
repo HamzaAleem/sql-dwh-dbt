@@ -1,0 +1,76 @@
+version: 2
+
+models:
+
+  - name: dim_customers
+    description: >
+      Customer dimension built from CRM and ERP sources.
+      One row per unique customer. Gender conflict resolved
+      in favour of CRM — ERP fills in only when CRM is N/A.
+    columns:
+      - name: customer_id
+        description: "Natural key from CRM source"
+        tests:
+          - not_null
+          - unique
+      - name: customer_number
+        description: "Business key used for cross-system joins"
+        tests:
+          - not_null
+      - name: gender
+        description: "Standardized: Male / Female / N/A"
+        tests:
+          - accepted_values:
+              values: ['Male', 'Female', 'N/A']
+      - name: marital_status
+        description: "Standardized: Single / Married / N/A"
+        tests:
+          - accepted_values:
+              values: ['Single', 'Married', 'N/A']
+      - name: country
+        tests:
+          - not_null
+
+  - name: dim_products
+    description: >
+      Product dimension from CRM enriched with ERP categories.
+      Current products only — historical versions excluded.
+    columns:
+      - name: product_id
+        description: "Natural key from CRM source"
+        tests:
+          - not_null
+          - unique
+      - name: product_number
+        description: "Business key — used to join to fact_sales"
+        tests:
+          - not_null
+          - unique
+      - name: product_line
+        tests:
+          - accepted_values:
+              values: ['Mountain', 'Road', 'Other Sales', 'Touring', 'N/A']
+
+  - name: fact_sales
+    description: >
+      Sales transactions from CRM. One row per line item.
+      Dates converted from INT, sales/price recalculated where inconsistent.
+    columns:
+      - name: customer_key
+        description: "FK to dim_customers.customer_id"
+        tests:
+          - not_null
+      - name: product_key
+        description: "FK to dim_products.product_id"
+        tests:
+          - not_null
+      - name: sales_amount
+        description: "Total value = quantity x unit_price"
+        tests:
+          - not_null
+      - name: quantity
+        tests:
+          - not_null
+      - name: order_date
+        tests:
+          - not_null
